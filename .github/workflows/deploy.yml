@@ -17,14 +17,16 @@ jobs:
         # with:
           # fetch-depth: 0 
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9 # 你可以指定 pnpm 的版本，例如 8 或 9
+
       - name: Setup Node.js # 步骤2: 设置 Node.js 环境
         uses: actions/setup-node@v4
         with:
           node-version: '20' # 推荐使用 LTS 版本的 Node.js
           cache: 'pnpm'      # 缓存 pnpm 依赖
-
-      - name: Install pnpm # 步骤3: 安装 pnpm
-        run: npm install -g pnpm
 
       - name: Install dependencies # 步骤4: 安装项目依赖
         run: pnpm install --frozen-lockfile # 使用 --frozen-lockfile 确保每次构建使用相同的依赖版本
