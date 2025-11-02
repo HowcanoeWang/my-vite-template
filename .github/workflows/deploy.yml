@@ -1,52 +1,82 @@
+# 工作流名称
 name: Deploy Vite Project to GitHub Pages
 
 on:
+  # 在 push 到 main 分支时触发
   push:
     branches:
-      - main # 替换为你的主分支名称，例如 'master' 或 'develop'
+      - main
+
+  # 允许你手动从 Actions 标签页运行此工作流
+  workflow_dispatch:
+
+# 设置工作流的默认权限
+permissions:
+  contents: read      # contents 需要 read 权限以检出代码
+  pages: write        # pages 需要 write 权限以部署到 GitHub Pages
+  id-token: write     # id-token 需要 write 权限以进行 OIDC 身份验证
+
+# 只允许一个并发部署，会取消正在进行中的、但不是最新的那次部署
+# 这对于快速连续推送的场景非常有用
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest # 使用最新版本的 Ubuntu 运行器
-    permissions:
-      contents: write # 授予 GITHUB_TOKEN 写入仓库内容的权限
-
+  # 构建任务 (Build job)
+  build:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository # 步骤1: 检出代码
+      - name: Checkout repository
         uses: actions/checkout@v4
-        # 推荐：如果你的 GitHub Pages 需要自定义域名或处理路由，可能需要保留历史记录
-        # 但是对于简单的 SPA 应用，通常不需要。
-        # with:
-          # fetch-depth: 0 
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9 # 你可以指定 pnpm 的版本，例如 8 或 9
+          version: 9 # 你可以保持或更改 pnpm 版本
 
-      - name: Setup Node.js # 步骤2: 设置 Node.js 环境
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # 推荐使用 LTS 版本的 Node.js
-          cache: 'pnpm'      # 缓存 pnpm 依赖
+          node-version: '20'
+          cache: 'pnpm'
 
-      - name: Install dependencies # 步骤4: 安装项目依赖
-        run: pnpm install --frozen-lockfile # 使用 --frozen-lockfile 确保每次构建使用相同的依赖版本
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Build project # 步骤5: 构建 Vite 项目
+      - name: Build project
+        # 环境变量 GITHUB_PAGES 会被 Vite 读取，用于设置正确的 publicPath
+        # 这可以确保你的资源（如 CSS, JS, 图片）在部署后能被正确加载
         run: pnpm build
+        env:
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
 
-      - name: Deploy to GitHub Pages # 步骤6: 部署到 GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4 # 使用第三方 Action 部署
-        if: github.ref == 'refs/heads/main' # 确保只在主分支上触发部署
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }} # GitHub 提供的默认 token
-          publish_dir: ./dist # 指定构建输出目录
-          # 对于单页应用 (SPA)，通常需要将 index.html 复制为 404.html
-          # 以便在路由刷新时，GitHub Pages 能够正确加载 index.html
-          # 如果你的应用不需要此行为，可以移除。
-          # cname: example.com # 如果你有自定义域名，可以在这里配置
-          # user_name: 'github-actions[bot]' # 可以自定义提交者的信息
-          # user_email: 'github-actions[bot]@users.noreply.github.com'
-          # allow_empty_commit: false # 默认情况下，如果发布内容没有变化，action会创建一个空提交。
-          # force_orphan: false # 默认情况下，会保留 gh-pages 分支的历史记录。如果设置为 true，每次都会清空历史。
+          # 上传构建产物目录
+          path: './dist'
+
+  # 部署任务 (Deploy job)
+  deploy:
+    # 部署任务需要构建任务成功完成
+    needs: build
+
+    # 部署任务需要特定的权限
+    permissions:
+      pages: write      # 部署到 GitHub Pages 的权限
+      id-token: write   # OIDC 认证的权限
+
+    # 设置部署环境
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
