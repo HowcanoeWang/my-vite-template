@@ -12,9 +12,9 @@ jobs:
     steps:
       - name: Checkout repository # 步骤1: 检出代码
         uses: actions/checkout@v4
-        with:
-          # 推荐：如果你的 GitHub Pages 需要自定义域名或处理路由，可能需要保留历史记录
-          # 但是对于简单的 SPA 应用，通常不需要。
+        # 推荐：如果你的 GitHub Pages 需要自定义域名或处理路由，可能需要保留历史记录
+        # 但是对于简单的 SPA 应用，通常不需要。
+        # with:
           # fetch-depth: 0 
 
       - name: Setup Node.js # 步骤2: 设置 Node.js 环境
