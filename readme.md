@@ -120,31 +120,12 @@ git push origin main
 
 这样，你就拥有了一个和此模板结构完全相同的新仓库，并且它与原模板没有 fork 关系。
 
-### 第二步：将新仓库克隆到本地
+> [!Note]
+> **关于initial commit失败的说明**
+> 
+> 通过这个模板创建项目后，Github Actions会自动运行一个`initial commit`的workflow，这个workflow通常会失败，不过不用担心，请继续按照下面第二步的说明配置项目
 
-在你的新仓库页面，点击绿色的 **`< > Code`** 按钮，复制仓库的 URL。然后在你的本地终端中运行：
-
-```bash
-# 将 URL 替换为你新创建的仓库 URL
-git clone https://github.com/YourUsername/Your-New-Repo-Name.git
-
-# 进入新创建的目录
-cd Your-New-Repo-Name
-```
-
-### 第三步：安装开发环境 (pnpm)
-
-和 Part 1 一样，你需要先安装 `pnpm`，然后安装项目依赖。
-
-```bash
-# 如果还未安装 pnpm
-npm install -g pnpm
-
-# 在项目根目录下安装依赖
-pnpm install
-```
-
-### 第四步：配置 GitHub Pages 的部署方式
+### 第二步：配置 GitHub Pages 的部署方式
 
 为了让自动化部署生效，你需要进行一个简单的设置：
 
@@ -153,12 +134,32 @@ pnpm install
 3.  在左侧菜单中，选择 **`Pages`**。
 4.  在 **`Build and deployment`** (构建和部署) 下的 **`Source`** (源) 部分，选择 **`GitHub Actions`**。    
     这个设置告诉 GitHub，网站的部署将由我们预先配置好的 GitHub Actions 工作流来驱动，而不是通过传统的分支。
-5. 如果你同时设置了自定义域名（`custom_domain`), 请手动注释掉或删除`vite.config.ts`下面的 base 字段行才能正确部署    
-    ```ts
-    // 用于判断是用户根目录xxx.github.io还是子目录xxx.github.io/project-name）
-    // 如果你自定义了域名 custom domain, 直接注释掉下面的base行
-    base: process.env.VITE_BASE_PATH || '/',   // <<-- 注释掉这一行
-    ```
+
+> [!WARNING]
+> **关于自定义域名 (Custom Domain) 的重要说明**
+> 
+> 如果你计划为你的 GitHub Pages 网站设置自定义域名，**必须**修改 `vite.config.ts` 文件。请注释掉或删除 `base` 配置行，否则网站部署后资源文件（如 CSS 和 JS）的路径会不正确，导致页面呈现白屏无法正常加载。
+>
+>  ```ts
+>  // vite.config.ts
+>  export default defineConfig({
+>    // 如果你使用了自定义域名，请注释掉或删除下面这行 'base' 配置
+>    base: process.env.VITE_BASE_PATH || '/', 
+>    ...
+>  })
+>  ```
+
+### 第三步：访问初始化页面
+
+为了确认 GitHub Actions 已成功执行并部署了你的网站，请按照以下步骤操作：
+
+1.  进入你的 GitHub 仓库页面，点击顶部的 **`Actions`** 标签。
+2.  在左侧菜单中，选择 **`All workflows`**。
+3.  找到最近一次运行成功的 `deploy.yml` 工作流（通常会有一个绿色的 ✅ 标记）。
+4.  点击进入该工作流的详情页面，在 `deploy` 步骤下，你会找到一个部署成功的网址。
+5.  访问该网址，你应该能看到如下所示的初始页面：
+
+如果一切正常，你将看到一个包含 Vite、Svelte、TypeScript、TailwindCSS 和 DaisyUI 标志的欢迎页面。
 
 ### 工作原理：Push-to-Deploy 自动化流程
 
